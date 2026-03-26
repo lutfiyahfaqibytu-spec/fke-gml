@@ -1,4 +1,4 @@
-const names = [
+      const names = [
     "Aiden", "James", "Liam", "Noah", "Oliver", "Elijah", "Lucas", "Mason", "Logan", "Alexander",
     "Ethan", "Jacob", "Michael", "Daniel", "Henry", "Sebastian", "Jack", "Matthew", "Joseph", "Samuel",
     "David", "Wyatt", "John", "Owen", "Dylan", "Luke", "Gabriel", "Isaac", "Andrew", "Leo",
@@ -40,18 +40,25 @@ const last_names = [
     "Harrison", "Jordan", "Patterson", "Rice", "Hunter", "Nichols", "Davis", "Kim", "Cameron", "Bates",
     "Austin", "Fox", "Perry", "Marshall", "Freeman", "West", "Knight", "Wood", "Baker", "Mason"
 ]
+function repeatRandomly(body){
+    result = '';
+    for (let char in body){
+        repeat = Math.random() > 0.8 ? 2 : 1;
+        result += body[char].repeat(repeat);
+    }
+    return result;
+  }
 const MatSize = 199;
 function createGmails() {
   let rand1 = Math.floor(names.length * Math.random());
   let rand2 = Math.floor(names.length * Math.random());
+  body = names[rand1].toLowerCase() +
+         last_names[rand2].toLowerCase()
+  body = repeatRandomly(body);
+
   return {
     gmail:
-      names[rand1] +
-      last_names[rand2] +
-      Math.floor(Math.random() * 10) +
-      Math.floor(Math.random() * 10) +
-      Math.floor(Math.random() * 10) +
-      Math.floor(Math.random() * 10) +
+      body+
       "@gmail.com",
     fname: names[rand1],
     lname: last_names[rand2],
