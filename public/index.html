@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emailnator Pro - Lyx Edition 😈💀</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col items-center justify-center p-4">
+
+    <div class="w-full max-w-3xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-6 md:p-8">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
+            <h1 class="text-2xl font-black tracking-wider text-blue-500 flex items-center gap-2">
+                🔥 EMAILNATOR <span class="text-xs bg-blue-600/20 text-blue-400 px-2 py-1 rounded-full border border-blue-500/30">PRO V2</span>
+            </h1>
+            <span class="text-xs text-slate-500">SYSTEM: UNLOCKED 😈💀</span>
+        </div>
+
+        <!-- Mode Selector -->
+        <div class="flex gap-2 mb-6">
+            <button onclick="switchTab('single')" id="btnSingle" class="flex-1 py-2.5 rounded-xl font-semibold text-sm transition bg-blue-600 text-white shadow-lg shadow-blue-600/30">Single Email</button>
+            <button onclick="switchTab('bulk')" id="btnBulk" class="flex-1 py-2.5 rounded-xl font-semibold text-sm transition bg-slate-800 text-slate-400 hover:bg-slate-700">Bulk Generator</button>
+        </div>
+
+        <!-- Single Section -->
+        <div id="sectionSingle" class="space-y-4">
+            <div class="flex gap-2">
+                <input type="text" id="emailBox" readonly placeholder="Klik generate untuk membuat email..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-emerald-400 font-mono text-sm focus:outline-none">
+                <button onclick="copyEmail()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 rounded-xl font-medium transition border border-slate-700">Salin</button>
+                <button onclick="generateEmail()" class="bg-blue-600 hover:bg-blue-500 text-white px-6 rounded-xl font-semibold transition shadow-lg shadow-blue-600/20">Generate</button>
+            </div>
+
+            <!-- Inbox Box -->
+            <div class="mt-6">
+                <div class="flex justify-between items-center mb-2">
+                    <h2 class="text-sm font-bold uppercase tracking-wider text-slate-400">📥 Kotak Masuk (Live Inbox)</h2>
+                    <span id="statusPolling" class="text-xs text-emerald-400 animate-pulse">● Auto-refresh aktif</span>
+                </div>
+                <div id="messageList" class="bg-slate-950 border border-slate-800 rounded-xl p-4 min-h-[200px] max-h-[300px] overflow-y-auto font-mono text-xs text-slate-300">
+                    Belum ada pesan masuk...
+                </div>
+            </div>
+        </div>
+
+        <!-- Bulk Section (Hidden by default) -->
+        <div id="sectionBulk" class="space-y-4 hidden">
+            <div class="flex gap-2 items-center">
+                <label class="text-sm text-slate-400">Jumlah (Max 500):</label>
+                <input type="number" id="bulkCount" value="10" min="1" max="500" class="w-24 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-white text-center font-mono text-sm">
+                <button onclick="generateBulk()" class="flex-1 bg-purple-600 hover:bg-purple-500 text-white py-2.5 rounded-xl font-semibold transition shadow-lg shadow-purple-600/20">Generate Bulk Emails</button>
+            </div>
+            <div id="bulkResult" class="bg-slate-950 border border-slate-800 rounded-xl p-4 min-h-[250px] max-h-[350px] overflow-y-auto font-mono text-xs text-emerald-400 whitespace-pre-wrap">
+                Hasil bulk email akan muncul di sini...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentEmail = "";
+        let pollingInterval = null;
+
+        function switchTab(tab) {
+            if (tab === 'single') {
+                document.getElementById('sectionSingle').classList.remove('hidden');
+                document.getElementById('sectionBulk').classList.add('hidden');
+                document.getElementById('btnSingle').className = "flex-1 py-2.5 rounded-xl font-semibold text-sm transition bg-blue-600 text-white shadow-lg shadow-blue-600/30";
+                document.getElementById('btnBulk').className = "flex-1 py-2.5 rounded-xl font-semibold text-sm transition bg-slate-800 text-slate-400 hover:bg-slate-700";
+            } else {
+                document.getElementById('sectionBulk').classList.remove('hidden');
+                document.getElementById('sectionSingle').classList.add('hidden');
+                document.getElementById('btnBulk').className = "flex-1 py-2.5 rounded-xl font-semibold text-sm transition bg-purple-600 text-white shadow-lg shadow-purple-600/30";
+                document.getElementById('btnSingle').className = "flex-1 py-2.5 rounded-xl font-semibold text-sm transition bg-slate-800 text-slate-400 hover:bg-slate-700";
+                if(pollingInterval) clearInterval(pollingInterval);
+            }
+        }
+
+        async function generateEmail() {
+            document.getElementById("emailBox").value = "Memuat email baru...";
+            document.getElementById("messageList").innerHTML = "Menunggu pesan...";
+            if (pollingInterval) clearInterval(pollingInterval);
+
+            try {
+                const res = await fetch('/api/generate');
+                const data = await res.json();
+                currentEmail = data.email || "";
+                document.getElementById("emailBox").value = currentEmail;
+                startPolling();
+            } catch (err) {
+                document.getElementById("emailBox").value = "Gagal terhubung ke server!";
+            }
+        }
+
+        function copyEmail() {
+            if (!currentEmail) return;
+            navigator.clipboard.writeText(currentEmail);
+            alert("Email berhasil disalin: " + currentEmail);
+        }
+
+        async function checkInbox() {
+            if (!currentEmail) return;
+            try {
+                const res = await fetch(`/api/messages?email=${encodeURIComponent(currentEmail)}`);
+                const data = await res.json();
+                if (data && data.length > 0) {
+                    document.getElementById("messageList").innerHTML = JSON.stringify(data, null, 2);
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function startPolling() {
+            pollingInterval = setInterval(checkInbox, 5000);
+        }
+
+        async function generateBulk() {
+            const count = document.getElementById("bulkCount").value;
+            document.getElementById("bulkResult").innerText = "Sedang memproses bulk email...";
+            try {
+                const res = await fetch('/api/generate-bulk', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ count: parseInt(count) })
+                });
+                const data = await res.json();
+                if (data.results) {
+                    const emailsText = data.results.map(item => item.email).join('\n');
+                    document.getElementById("bulkResult").innerText = emailsText;
+                } else {
+                    document.getElementById("bulkResult").innerText = JSON.stringify(data, null, 2);
+                }
+            } catch (err) {
+                document.getElementById("bulkResult").innerText = "Gagal memproses bulk request.";
+            }
+        }
+    </script>
+</body>
+</html>
