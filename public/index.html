@@ -75,7 +75,7 @@
             }
         }
 
-                async function generateEmail() {
+                        async function generateEmail() {
             document.getElementById("emailBox").value = "Memuat email baru...";
             document.getElementById("messageList").innerHTML = "Menunggu pesan...";
             if (pollingInterval) clearInterval(pollingInterval);
@@ -84,22 +84,27 @@
                 const res = await fetch('/api/generate');
                 const data = await res.json();
                 
-                // Menyesuaikan dengan output JSON API Gmailnator
-                currentEmail = data.email || data.result || "";
+                if (!res.ok) {
+                    document.getElementById("emailBox").value = "Error: " + (data.error || JSON.stringify(data));
+                    console.error("API Error Details:", data);
+                    return;
+                }
+
+                // Menyesuaikan struktur data yang dikembalikan API
+                currentEmail = data.email || data.result || data.address || "";
                 
                 if (!currentEmail) {
-                    document.getElementById("emailBox").value = "Gagal: " + JSON.stringify(data);
+                    document.getElementById("emailBox").value = "Format data kosong: " + JSON.stringify(data);
                     return;
                 }
 
                 document.getElementById("emailBox").value = currentEmail;
                 startPolling();
             } catch (err) {
-                document.getElementById("emailBox").value = "Gagal terhubung ke server!";
+                document.getElementById("emailBox").value = "Fetch Error: " + err.message;
                 console.error(err);
             }
         }
-
 
         function copyEmail() {
             if (!currentEmail) return;
