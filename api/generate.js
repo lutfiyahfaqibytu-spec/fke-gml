@@ -7,9 +7,9 @@ module.exports = async (req, res) => {
     const response = await fetch("https://gmailnator.p.rapidapi.com/api/emails/generate", {
       method: "POST",
       headers: {
-        "content-type": "application/json",
-        "X-RapidAPI-Key": RAPIDAPI_KEY,
-        "X-RapidAPI-Host": "gmailnator.p.rapidapi.com"
+        "Content-Type": "application/json",
+        "x-rapidapi-host": "gmailnator.p.rapidapi.com",
+        "x-rapidapi-key": RAPIDAPI_KEY
       },
       body: JSON.stringify({})
     });
