@@ -10,10 +10,10 @@
 <body class="bg-gray-950 text-gray-100 min-h-screen flex flex-col items-center justify-between p-4">
 
     <!-- Container Utama -->
-    <div class="w-full max-w-2xl bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl p-6 mt-10">
+    <div class="w-full max-w-2xl bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl p-6 mt-10 space-y-6">
         
         <!-- Header -->
-        <div class="flex justify-between items-center mb-6">
+        <div class="flex justify-between items-center">
             <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
                 Emailnator Pro
             </h1>
@@ -23,7 +23,7 @@
         </div>
 
         <!-- Kotak Alamat Email -->
-        <div class="mb-6">
+        <div>
             <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Alamat Email Anda</label>
             <div class="flex gap-2">
                 <input type="text" id="emailBox" readonly value="Klik 'Generate Email Baru' untuk mulai..." class="w-full bg-gray-950 border border-gray-800 rounded-lg px-4 py-3 text-blue-400 font-mono text-sm focus:outline-none">
@@ -37,14 +37,30 @@
         <div>
             <div class="flex justify-between items-center mb-3">
                 <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Kotak Masuk (Inbox)</span>
-                <span class="text-xs text-gray-500 animate-pulse">● Memantau pesan secara otomatis</span>
+                <div class="flex items-center gap-3">
+                    <span class="text-xs text-gray-500 animate-pulse hidden sm:inline" id="pollingStatus">● Auto-refresh aktif</span>
+                    <button onclick="fetchInbox()" class="bg-gray-800 hover:bg-gray-700 text-xs text-blue-400 font-medium px-3 py-1.5 rounded-lg border border-gray-700 transition duration-200 flex items-center gap-1">
+                        🔄 Reload Inbox
+                    </button>
+                </div>
             </div>
             
-            <div id="messageList" class="bg-gray-950 border border-gray-800 rounded-lg p-4 min-h-[250px] max-h-[400px] overflow-y-auto space-y-3">
+            <div id="messageList" class="bg-gray-950 border border-gray-800 rounded-lg p-4 min-h-[220px] max-h-[350px] overflow-y-auto space-y-3">
                 <div class="text-gray-500 text-center py-12 text-sm">
                     Belum ada email aktif. Silakan generate email terlebih dahulu.
                 </div>
             </div>
+        </div>
+
+        <!-- Bagian Bulk Gmail (Generator Massal di Paling Bawah) -->
+        <div class="border-t border-gray-800 pt-6">
+            <div class="flex justify-between items-center mb-3">
+                <span class="text-xs font-semibold text-purple-400 uppercase tracking-wider">⚡ Bulk Gmail Generator</span>
+                <button onclick="generateBulkEmails()" class="bg-purple-600 hover:bg-purple-500 text-white font-medium px-3 py-1.5 rounded-lg transition duration-200 text-xs shadow-md">
+                    Buat 5 Email Sekaligus
+                </button>
+            </div>
+            <textarea id="bulkEmailBox" readonly placeholder="Hasil bulk email akan muncul di sini..." class="w-full h-28 bg-gray-950 border border-gray-800 rounded-lg p-3 text-purple-300 font-mono text-xs focus:outline-none resize-none"></textarea>
         </div>
 
     </div>
@@ -59,7 +75,7 @@
         let pollingInterval = null;
         let currentEmail = "";
 
-        // Fungsi membuat email baru
+        // Fungsi membuat email baru (Single)
         async function generateEmail() {
             document.getElementById("emailBox").value = "Memuat email baru...";
             document.getElementById("messageList").innerHTML = `<div class="text-gray-500 text-center py-12 text-sm">Menunggu email baru...</div>`;
@@ -82,8 +98,6 @@
                 }
 
                 document.getElementById("emailBox").value = currentEmail;
-                
-                // Mulai polling inbox setelah email didapatkan
                 startPolling();
                 
             } catch (err) {
@@ -94,7 +108,6 @@
 
         // Fungsi Salin Email ke Clipboard
         function copyEmail() {
-            const emailBox = document.getElementById("emailBox");
             if (!currentEmail) return;
             navigator.clipboard.writeText(currentEmail);
             alert("Email berhasil disalin: " + currentEmail);
@@ -105,14 +118,18 @@
             if (!currentEmail) return;
             fetchInbox();
 
+            document.getElementById("pollingStatus").classList.remove("hidden");
             pollingInterval = setInterval(() => {
                 fetchInbox();
             }, 5000);
         }
 
-        // Mengambil pesan masuk dari backend
+        // Mengambil pesan masuk dari backend (Tombol Reload & Auto Polling)
         async function fetchInbox() {
-            if (!currentEmail) return;
+            if (!currentEmail) {
+                alert("Pilih atau generate email terlebih dahulu!");
+                return;
+            }
 
             try {
                 const res = await fetch(`/api/messages?email=${encodeURIComponent(currentEmail)}`, {
@@ -142,6 +159,30 @@
 
             } catch (err) {
                 console.error("Gagal mengambil inbox:", err);
+            }
+        }
+
+        // Fungsi Bulk Generator (Memanggil API generate beberapa kali secara paralel)
+        async function generateBulkEmails() {
+            const bulkBox = document.getElementById("bulkEmailBox");
+            bulkBox.value = "Sedang membuat beberapa email...";
+            
+            try {
+                // Membuat 5 request paralel ke endpoint generate
+                const promises = Array.from({ length: 5 }, () => fetch('/api/generate').then(res => res.json()));
+                const results = await Promise.all(promises);
+                
+                const emails = results.map(r => r.email || r.result || r.address).filter(Boolean);
+                
+                if (emails.length === 0) {
+                    bulkBox.value = "Gagal membuat bulk email.";
+                    return;
+                }
+
+                bulkBox.value = emails.join('\n');
+            } catch (err) {
+                bulkBox.value = "Terjadi kesalahan saat memproses bulk email.";
+                console.error(err);
             }
         }
     </script>
