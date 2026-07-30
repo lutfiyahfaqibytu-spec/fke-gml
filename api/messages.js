@@ -2,19 +2,22 @@ const fetch = require('node-fetch');
 
 module.exports = async (req, res) => {
   const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY;
-  const { email } = req.query;
+  // Menerima parameter email dari query string frontend
+  const email = req.query.email || (req.body && req.body.email);
 
   if (!email) {
     return res.status(400).json({ error: "Email diperlukan" });
   }
 
   try {
-    const response = await fetch(`https://gmailnator.p.rapidapi.com/api/inbox?email=${encodeURIComponent(email)}`, {
-      method: "GET",
+    const response = await fetch("https://gmailnator.p.rapidapi.com/api/inbox/", {
+      method: "POST",
       headers: {
-        "X-RapidAPI-Key": RAPIDAPI_KEY,
-        "X-RapidAPI-Host": "gmailnator.p.rapidapi.com"
-      }
+        "Content-Type": "application/json",
+        "x-rapidapi-host": "gmailnator.p.rapidapi.com",
+        "x-rapidapi-key": RAPIDAPI_KEY
+      },
+      body: JSON.stringify({ email: email, limit: 10 })
     });
 
     const data = await response.json();
